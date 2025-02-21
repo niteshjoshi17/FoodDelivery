@@ -1,0 +1,71 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "food-delivery-api"
+        DOCKER_HUB_REPO = "your-dockerhub-username/food-delivery-api"  // Docker Hub repo
+        AWS_ECR_REPO = "your-aws-account-id.dkr.ecr.your-region.amazonaws.com/food-delivery-api"  // AWS ECR repo
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/your-repo/food-delivery-api.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh "docker build -t ${IMAGE_NAME} ."
+                }
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                    }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    sh "docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}:latest"
+                    sh "docker push ${DOCKER_HUB_REPO}:latest"
+                }
+            }
+        }
+
+        stage('Login to AWS ECR (Optional)') {
+            steps {
+                script {
+                    sh "aws ecr get-login-password --region your-region | docker login --username AWS --password-stdin ${AWS_ECR_REPO}"
+                }
+            }
+        }
+
+        stage('Push to AWS ECR (Optional)') {
+            steps {
+                script {
+                    sh "docker tag ${IMAGE_NAME} ${AWS_ECR_REPO}:latest"
+                    sh "docker push ${AWS_ECR_REPO}:latest"
+                }
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                script {
+                    sh "docker stop ${IMAGE_NAME} || true"
+                    sh "docker rm ${IMAGE_NAME} || true"
+                    sh "docker run -d --name ${IMAGE_NAME} -p 8080:8080 ${DOCKER_HUB_REPO}:latest"
+                }
+            }
+        }
+    }
+}
