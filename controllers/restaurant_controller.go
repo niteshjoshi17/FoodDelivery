@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 📌 1️⃣ CREATE RESTAURANT
+// CREATE RESTAURANT
 func CreateRestaurant(c *gin.Context) {
 	var restaurant models.Restaurant
 
@@ -28,7 +28,7 @@ func CreateRestaurant(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Restaurant added successfully", "restaurant": restaurant})
 }
 
-// 📌 2️⃣ GET ALL RESTAURANTS
+// GET ALL RESTAURANTS
 func GetRestaurants(c *gin.Context) {
 	var restaurants []models.Restaurant
 
@@ -42,7 +42,7 @@ func GetRestaurants(c *gin.Context) {
 	c.JSON(http.StatusOK, restaurants)
 }
 
-// 📌 3️⃣ GET SINGLE RESTAURANT BY ID
+// GET SINGLE RESTAURANT BY ID
 func GetRestaurantByID(c *gin.Context) {
 	var restaurant models.Restaurant
 	restaurantID := c.Param("id")
@@ -57,7 +57,7 @@ func GetRestaurantByID(c *gin.Context) {
 	c.JSON(http.StatusOK, restaurant)
 }
 
-// 📌 4️⃣ UPDATE RESTAURANT DETAILS
+// UPDATE RESTAURANT DETAILS
 func UpdateRestaurant(c *gin.Context) {
 	var restaurant models.Restaurant
 	restaurantID := c.Param("id")
@@ -82,7 +82,7 @@ func UpdateRestaurant(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Restaurant updated successfully", "restaurant": restaurant})
 }
 
-// 📌 5️⃣ DELETE RESTAURANT
+// DELETE RESTAURANT
 func DeleteRestaurant(c *gin.Context) {
 	restaurantID := c.Param("id")
 

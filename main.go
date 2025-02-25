@@ -16,7 +16,7 @@ func main() {
 
 	config.DB.AutoMigrate(&models.Restaurant{}, &models.Order{})
 
-	// ✅ Start Order Processing Worker Pool
+	//  Start Order Processing Worker Pool
 	go controllers.StartOrderWorkerPool(3) // 3 concurrent workers
 
 	r := routes.RegisterRoutes()
