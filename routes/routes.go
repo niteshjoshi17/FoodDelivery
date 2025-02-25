@@ -1,29 +1,32 @@
 package routes
 
 import (
-	"fmt"
-	"net/http"
-
 	"food-delivery/controllers"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes() *mux.Router {
-	r := mux.NewRouter()
+func RegisterRoutes() *gin.Engine {
+	r := gin.Default()
 
-	// Default home route
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Welcome to the Food Delivery API!")
-	}).Methods("GET")
+	// 🔹 Default Route (Homepage)
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "Welcome to Food Delivery API!"})
+	})
 
-	// API routes
-	r.HandleFunc("/register", controllers.RegisterUser).Methods("POST")
-	r.HandleFunc("/place-order", controllers.PlaceOrder).Methods("POST")
-	r.HandleFunc("/accept-order", controllers.AcceptOrder).Methods("POST")
-	r.HandleFunc("/mark-delivered", controllers.MarkDelivered).Methods("POST")
-	r.HandleFunc("/order-history/{user_id}", controllers.GetOrderHistory).Methods("GET")
-	r.HandleFunc("/restaurant/{id}", controllers.GetRestaurant).Methods("GET")
+	// 🔹 Order Routes
+	r.POST("/orders", controllers.PlaceOrder)
+	r.GET("/orders", controllers.GetOrders)
+	r.GET("/orders/:id", controllers.GetOrderByID)
+	r.PUT("/orders/:id", controllers.UpdateOrder)
+	r.DELETE("/orders/:id", controllers.DeleteOrder)
+
+	// 🔹 Restaurant Routes
+	r.POST("/restaurants", controllers.CreateRestaurant)
+	r.GET("/restaurants", controllers.GetRestaurants)
+	r.GET("/restaurants/:id", controllers.GetRestaurantByID)
+	r.PUT("/restaurants/:id", controllers.UpdateRestaurant)
+	r.DELETE("/restaurants/:id", controllers.DeleteRestaurant)
 
 	return r
 }

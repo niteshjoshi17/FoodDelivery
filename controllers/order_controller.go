@@ -1,86 +1,99 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
+	"food-delivery/config"
+	"food-delivery/models"
 	"net/http"
-	"sync"
-	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Order structure
-type Order struct {
-	ID        int    `json:"id"`
-	UserID    int    `json:"user_id"`
-	Status    string `json:"status"`
-	Timestamp time.Time
-}
+// OrderQueue - Channel for processing orders asynchronously
+var OrderQueue = make(chan uint, 10) // Buffered channel with capacity 10
 
-var orderQueue = make(chan Order, 10) // Buffered Channel for concurrent processing
-var orderID int = 1
-var mu sync.Mutex // Mutex to avoid race conditions
+// PLACE ORDER (Customer) - Send to worker queue
+func PlaceOrder(c *gin.Context) {
+	var order models.Order
 
-// Worker Pool to process orders concurrently
-func StartOrderWorkerPool(workerCount int) {
-	for i := 0; i < workerCount; i++ {
-		go func(workerID int) {
-			for order := range orderQueue {
-				fmt.Printf("Worker %d processing Order ID: %d\n", workerID, order.ID)
-				time.Sleep(2 * time.Second) // Simulate processing time
-				fmt.Printf("Worker %d completed Order ID: %d\n", workerID, order.ID)
-			}
-		}(i + 1)
+	// Bind JSON request to order struct
+	if err := c.ShouldBindJSON(&order); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
-}
 
-// PlaceOrder - API to place an order (handled concurrently)
-func PlaceOrder(w http.ResponseWriter, r *http.Request) {
-	mu.Lock()
-	newOrder := Order{
-		ID:        orderID,
-		UserID:    orderID, // Simulated User ID
-		Status:    "Pending",
-		Timestamp: time.Now(),
+	order.Status = "pending"
+
+	// Save order to database
+	if err := config.DB.Create(&order).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error placing order"})
+		return
 	}
-	orderID++
-	mu.Unlock()
 
-	orderQueue <- newOrder // Send order to the queue for processing
+	// Send order to worker queue for async processing
+	go func(orderID uint) {
+		OrderQueue <- orderID
+	}(order.ID)
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": fmt.Sprintf("Order %d placed successfully!", newOrder.ID),
-	})
+	c.JSON(http.StatusCreated, gin.H{"message": "Order placed successfully. Processing started.", "order": order})
 }
 
-// AcceptOrder - API to accept an order
-func AcceptOrder(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Order accepted!"))
+// GET ALL ORDERS
+func GetOrders(c *gin.Context) {
+	var orders []models.Order
+
+	if err := config.DB.Find(&orders).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch orders"})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
 }
 
-// MarkDelivered - API to mark an order as delivered
-func MarkDelivered(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Order marked as delivered!"))
+// GET ORDER BY ID
+func GetOrderByID(c *gin.Context) {
+	var order models.Order
+	orderID := c.Param("id")
+
+	if err := config.DB.First(&order, orderID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
 }
 
-// GetOrderHistory - API to fetch order history
-func GetOrderHistory(w http.ResponseWriter, r *http.Request) {
-	var wg sync.WaitGroup
-	wg.Add(2)
+// UPDATE ORDER STATUS
+func UpdateOrder(c *gin.Context) {
+	var order models.Order
+	orderID := c.Param("id")
 
-	go func() {
-		defer wg.Done()
-		time.Sleep(1 * time.Second)
-		fmt.Println("Fetched order details")
-	}()
+	if err := config.DB.First(&order, orderID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		return
+	}
 
-	go func() {
-		defer wg.Done()
-		time.Sleep(1 * time.Second)
-		fmt.Println("Fetched payment details")
-	}()
+	if err := c.ShouldBindJSON(&order); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	wg.Wait() // Wait for both goroutines to complete
+	if err := config.DB.Save(&order).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update order"})
+		return
+	}
 
-	w.Write([]byte("User order history!"))
+	c.JSON(http.StatusOK, gin.H{"message": "Order updated successfully", "order": order})
+}
+
+// DELETE ORDER
+func DeleteOrder(c *gin.Context) {
+	var order models.Order
+	orderID := c.Param("id")
+
+	if err := config.DB.Delete(&order, orderID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete order"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Order deleted successfully"})
 }
