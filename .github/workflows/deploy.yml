@@ -35,17 +35,17 @@ jobs:
         run: go build -o backend-api main.go  # Binary build
 
       - name: Run Unit & API Tests
-        run: go test ./... -v  # Unit tests aur API tests
+        run: go test ./... -v  # Unit tests and API tests
 
       - name: Upload Test Reports
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-reports
           path: /tmp/test-reports  # Test logs path (modify as needed)
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backend-binary
           path: backend-api
