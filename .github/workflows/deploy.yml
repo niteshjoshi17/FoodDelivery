@@ -47,7 +47,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
-          path: /tmp/test-reports  # Test logs path (modify as needed)
+          path: /tmp/test-reports  # Test logs path
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
