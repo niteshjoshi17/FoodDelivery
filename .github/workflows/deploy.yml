@@ -1,0 +1,51 @@
+name: Go Backend CI Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24.0' 
+
+      - name: Cache Go Modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-${{ runner.os }}
+
+      - name: Install Dependencies
+        run: go mod tidy  # Dependencies cleanup
+
+      - name: Build Backend
+        run: go build -o backend-api main.go  # Binary build
+
+      - name: Run Unit & API Tests
+        run: go test ./... -v  # Unit tests aur API tests
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: /tmp/test-reports  # Test logs path (modify as needed)
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-binary
+          path: backend-api
