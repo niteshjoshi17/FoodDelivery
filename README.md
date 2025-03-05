@@ -1,7 +1,7 @@
 **Prerequisites**
 Before running this project, ensure you have the following installed:
 
-Docker 
+
 Docker (Installed & Running)
 Git (To Clone the Repository)
 
