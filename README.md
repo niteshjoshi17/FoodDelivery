@@ -14,4 +14,4 @@ docker build -t food-delivery-api .
 docker run -p 8080:8080 food-delivery-api
 
 **Verify the API is Running**
-curl http://localhost:8080
+curl http://localhost:9090
